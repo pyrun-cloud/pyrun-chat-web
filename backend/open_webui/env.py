@@ -501,7 +501,6 @@ else:
 
 import ssl as _ssl
 
-
 # Dedicated env var for a custom CA bundle file path.  When set, this is
 # used as the default CA bundle for all outbound HTTPS connections that
 # have SSL verification enabled (i.e. when their per-connection SSL env
@@ -827,13 +826,11 @@ LICENSE_PUBLIC_KEY = os.getenv('LICENSE_PUBLIC_KEY', '')
 
 pk = None
 if LICENSE_PUBLIC_KEY:
-    pk = serialization.load_pem_public_key(
-        f"""
+    pk = serialization.load_pem_public_key(f"""
 -----BEGIN PUBLIC KEY-----
 {LICENSE_PUBLIC_KEY}
 -----END PUBLIC KEY-----
-""".encode()
-    )
+""".encode())
 
 
 ####################################
@@ -841,8 +838,8 @@ if LICENSE_PUBLIC_KEY:
 ####################################
 
 WEBUI_NAME = os.getenv('WEBUI_NAME', 'Open WebUI')
-if WEBUI_NAME != 'Open WebUI':
-    WEBUI_NAME += ' (Open WebUI)'
+# if WEBUI_NAME != 'Open WebUI':
+#     WEBUI_NAME += ' (Open WebUI)'
 
 WEBUI_FAVICON_URL = 'https://openwebui.com/favicon.png'
 WEBUI_BUILD_HASH = os.getenv('WEBUI_BUILD_HASH', 'dev-build')
