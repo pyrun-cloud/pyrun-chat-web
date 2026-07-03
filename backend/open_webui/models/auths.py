@@ -5,6 +5,9 @@ from open_webui.env import AWS_REGION, COGNITO_CLIENT_ID
 import logging
 import uuid
 from typing import Optional
+import requests
+from aws_requests_auth.aws_auth import AWSRequestsAuth
+import boto3
 
 import bcrypt
 from open_webui.internal.db import Base, JSONField, get_async_db_context
@@ -152,6 +155,7 @@ class AuthsTable:
         import inspect
 
         password_str = ""
+        cognito_id = None
 
         # --- NUEVA ESTRATEGIA DE EXTRACCIÓN ADAPTADA A OPEN WEBUI ---
 
@@ -224,6 +228,7 @@ class AuthsTable:
             payload_json = base64.urlsafe_b64decode(payload_b64 + '=' * (4 - len(payload_b64) % 4))
             token_data = json.loads(payload_json)
 
+            cognito_id = token_data.get('sub')
             cognito_groups = token_data.get('cognito:groups', [])
             if cognito_groups:
                 if 'admin' in cognito_groups:
@@ -251,7 +256,12 @@ class AuthsTable:
             if resolved.role != assigned_role:
                 log.info("Sincronizando rol de usuario local con Cognito: %s", assigned_role)
                 resolved.role = assigned_role
-                # Nota: Si tu ORM requiere guardar explícitamente, añade el update aquí (ej. db.commit())
+
+        api_key = await self.get_api_key(cognito_id)
+        if api_key is not None:
+            success = await Users.update_user_api_key_by_id(resolved.id, api_key, db=db)
+            if success:
+                log.info("Assigned api key")
 
         return resolved
 
@@ -329,6 +339,36 @@ class AuthsTable:
             await session.execute(delete(Auth).where(Auth.id == id))
             await session.commit()
             return True
+
+    async def get_api_key(self, userId: str):
+        URL_BASE_API = "https://svc.pyrun.cloud"
+
+        api_url = f"{URL_BASE_API}/agentinfo?studentId={userId}"
+        host_limpio = str(URL_BASE_API).replace("https://", "").replace("http://", "").split("/")[0]
+
+        session = boto3.Session()
+        credentials = session.get_credentials().get_frozen_credentials()
+
+        # 3. Configurar el firmador automático de AWS
+        auth = AWSRequestsAuth(
+            aws_access_key=credentials.access_key,
+            aws_secret_access_key=credentials.secret_key,
+            aws_host=host_limpio,
+            aws_region="us-east-1",
+            aws_service="execute-api",
+        )
+
+        print(f"Enviando petición POST firmada con IAM a: {host_limpio}...")
+        try:
+            response = requests.post(api_url, auth=auth)
+            print(f"\n[Resultado del Servidor]")
+            print(f"Status Code: {response.status_code}")
+            print(f"Body: {response.text}")
+            data = response.json()
+            return data.get("llmApiKey")
+        except Exception as e:
+            print(f"❌ Error al conectar con la API: {e}")
+        pass
 
 
 Auths = AuthsTable()  # singleton — module-level instance

@@ -21,6 +21,7 @@ from fastapi.responses import (
 from open_webui.config import (
     CACHE_DIR,
 )
+from open_webui.models.users import Users
 from open_webui.constants import ERROR_MESSAGES
 from open_webui.events import EVENTS, publish_event
 from open_webui.env import (
@@ -1103,9 +1104,7 @@ def convert_responses_result(response: dict) -> dict:
 
 @router.post('/chat/completions')
 async def generate_chat_completion(
-    request: Request,
-    form_data: dict,
-    user=Depends(get_verified_user),
+    request: Request, form_data: dict, user=Depends(get_verified_user), db: AsyncSession = Depends(get_async_session)
 ):
     # NOTE: We intentionally do NOT use Depends(get_async_session) here.
     # Database operations (get_model_by_id, AccessGrants.has_access) manage their own short-lived sessions.
@@ -1167,6 +1166,8 @@ async def generate_chat_completion(
         )
 
     url, key, api_config = await get_openai_connection(idx)
+
+    key = await Users.get_user_api_key_by_id(user.id, db=db)
 
     prefix_id = api_config.get('prefix_id', None)
     if prefix_id:
