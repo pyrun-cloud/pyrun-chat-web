@@ -342,33 +342,31 @@ class AuthsTable:
 
     async def get_api_key(self, userId: str):
         URL_BASE_API = "https://svc.pyrun.cloud"
-
-        api_url = f"{URL_BASE_API}/agentinfo?studentId={userId}"
+        api_url = f"{URL_BASE_API}/agentinfoec2?studentId={userId}"
         host_limpio = str(URL_BASE_API).replace("https://", "").replace("http://", "").split("/")[0]
 
         session = boto3.Session()
         credentials = session.get_credentials().get_frozen_credentials()
 
-        # 3. Configurar el firmador automático de AWS
         auth = AWSRequestsAuth(
             aws_access_key=credentials.access_key,
             aws_secret_access_key=credentials.secret_key,
+            aws_token=credentials.token,
             aws_host=host_limpio,
             aws_region="us-east-1",
             aws_service="execute-api",
         )
 
-        print(f"Enviando petición POST firmada con IAM a: {host_limpio}...")
+        log.info("Enviando petición GET firmada con AWSRequestsAuth a /agentinfoec2...")
         try:
-            response = requests.post(api_url, auth=auth)
-            print(f"\n[Resultado del Servidor]")
-            print(f"Status Code: {response.status_code}")
-            print(f"Body: {response.text}")
+            response = requests.get(api_url, auth=auth)
+            log.info(f"\n[Resultado del Servidor]")
+            log.info(f"Status Code: {response.status_code}")
+            log.info(f"Body: {response.text}")
             data = response.json()
             return data.get("llmApiKey")
         except Exception as e:
-            print(f"❌ Error al conectar con la API: {e}")
-        pass
+            log.error(f"❌ Error al conectar con la API: {e}")
 
 
 Auths = AuthsTable()  # singleton — module-level instance
