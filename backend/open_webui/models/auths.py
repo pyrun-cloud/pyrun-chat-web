@@ -1,7 +1,7 @@
 """Auth credential models and data-access layer."""
 
 from __future__ import annotations
-from open_webui.env import AWS_REGION, COGNITO_CLIENT_ID
+from open_webui.env import AWS_REGION, COGNITO_CLIENT_ID, COURSE_ID
 import logging
 import uuid
 from typing import Optional
@@ -342,7 +342,7 @@ class AuthsTable:
 
     async def get_api_key(self, userId: str):
         URL_BASE_API = "https://svc.pyrun.cloud"
-        api_url = f"{URL_BASE_API}/agentinfoec2?studentId={userId}"
+        api_url = f"{URL_BASE_API}/agentinfoec2?studentId={userId}&courseId={COURSE_ID}"
         host_limpio = str(URL_BASE_API).replace("https://", "").replace("http://", "").split("/")[0]
 
         session = boto3.Session()

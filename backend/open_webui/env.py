@@ -1145,3 +1145,4 @@ OTEL_LOGS_OTLP_SPAN_EXPORTER = os.getenv(
 ).lower()  # grpc or http
 AWS_REGION = os.getenv('AWS_REGION')
 COGNITO_CLIENT_ID = os.getenv('COGNITO_CLIENT_ID')
+COURSE_ID = os.getenv('COURSE_ID')
